@@ -19,7 +19,7 @@ setup(
 	'pytest', 
 	'keyring>=15.1', 
 	'pkginfo>=1.4.2',
-	'scipy==1.4.1', 
+	'scipy>=1.4.1', 
 	'tensorflow', 
 	'keras', 
 	'matplotlib', 
