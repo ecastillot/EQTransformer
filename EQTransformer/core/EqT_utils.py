@@ -15,6 +15,7 @@ from tqdm import tqdm
 import os
 os.environ['KERAS_BACKEND']='tensorflow'
 from tensorflow import keras
+from tensorflow import keras
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import add, Activation, LSTM, Conv1D, InputSpec
 from tensorflow.keras.layers import MaxPooling1D, UpSampling1D, Cropping1D, SpatialDropout1D, Bidirectional, BatchNormalization 
@@ -69,9 +70,6 @@ class DataGenerator(keras.utils.Sequence):
 
     add_gap_r: {float, None}, default=None
         Add an interval with zeros into the waveform representing filled gaps.
-
-    coda_ratio: {float, 0.4}, default=0.4
-        % of S-P time to extend event/coda envelope past S pick.       
             
     shift_event_r: {float, None}, default=0.9
         Rate of augmentation for randomly shifting the event within a trace. 
@@ -107,7 +105,6 @@ class DataGenerator(keras.utils.Sequence):
                  augmentation = False, 
                  add_event_r = None,
                  add_gap_r = None,
-                 coda_ratio = 0.4,
                  shift_event_r = None,
                  add_noise_r = None, 
                  drop_channe_r = None, 
@@ -127,8 +124,7 @@ class DataGenerator(keras.utils.Sequence):
         self.label_type = label_type       
         self.augmentation = augmentation   
         self.add_event_r = add_event_r
-        self.add_gap_r = add_gap_r
-        self.coda_ratio = coda_ratio
+        self.add_gap_r = add_gap_r  
         self.shift_event_r = shift_event_r
         self.add_noise_r = add_noise_r
         self.drop_channe_r = drop_channe_r
@@ -402,8 +398,8 @@ class DataGenerator(keras.utils.Sequence):
                         sd = sst - spt  
                                                             
                     if sd and sst:
-                        if sst+int(self.coda_ratio*sd) <= self.dim: 
-                            y1[i, spt:int(sst+(self.coda_ratio*sd)), 0] = 1        
+                        if sst+int(0.4*sd) <= self.dim: 
+                            y1[i, spt:int(sst+(0.4*sd)), 0] = 1        
                         else:
                             y1[i, spt:self.dim, 0] = 1                       
                              
@@ -412,7 +408,7 @@ class DataGenerator(keras.utils.Sequence):
                     elif spt and (spt-20 < self.dim):
                         y2[i, 0:spt+20, 0] = np.exp(-(np.arange(0,spt+20)-spt)**2/(2*(10)**2))[:self.dim-(spt-20)]
     
-                    if sst and (sst-20 >= 0) and (sst+20 < self.dim):
+                    if sst and (sst-20 >= 0) and (sst-20 < self.dim):
                         y3[i, sst-20:sst+20, 0] = np.exp(-(np.arange(sst-20,sst+20)-sst)**2/(2*(10)**2))[:self.dim-(sst-20)]
                     elif sst and (sst-20 < self.dim):
                         y3[i, 0:sst+20, 0] = np.exp(-(np.arange(0,sst+20)-sst)**2/(2*(10)**2))[:self.dim-(sst-20)]
@@ -424,8 +420,8 @@ class DataGenerator(keras.utils.Sequence):
                         if add_spt and add_sst: 
                             add_sd = add_sst - add_spt  
                                     
-                        if add_sd and add_sst+int(self.coda_ratio*add_sd) <= self.dim: 
-                            y1[i, add_spt:int(add_sst+(self.coda_ratio*add_sd)), 0] = 1        
+                        if add_sd and add_sst+int(0.4*add_sd) <= self.dim: 
+                            y1[i, add_spt:int(add_sst+(0.4*add_sd)), 0] = 1        
                         else:
                             y1[i, add_spt:self.dim, 0] = 1
                             
@@ -446,8 +442,8 @@ class DataGenerator(keras.utils.Sequence):
                         sd = sst - spt  
                                                             
                     if sd and sst:
-                        if sst+int(self.coda_ratio*sd) <= self.dim: 
-                            y1[i, spt:int(sst+(self.coda_ratio*sd)), 0] = 1        
+                        if sst+int(0.4*sd) <= self.dim: 
+                            y1[i, spt:int(sst+(0.4*sd)), 0] = 1        
                         else:
                             y1[i, spt:self.dim, 0] = 1                     
                         
@@ -474,8 +470,8 @@ class DataGenerator(keras.utils.Sequence):
                         if add_spt and add_sst: 
                             add_sd = add_sst - add_spt                     
                         
-                        if add_sd and add_sst+int(self.coda_ratio*add_sd) <= self.dim: 
-                            y1[i, add_spt:int(add_sst+(self.coda_ratio*add_sd)), 0] = 1        
+                        if add_sd and add_sst+int(0.4*add_sd) <= self.dim: 
+                            y1[i, add_spt:int(add_sst+(0.4*add_sd)), 0] = 1        
                         else:
                             y1[i, add_spt:self.dim, 0] = 1                     
     
@@ -501,8 +497,8 @@ class DataGenerator(keras.utils.Sequence):
                     if sst and spt:
                         sd = sst - spt      
 
-                    if sd and sst+int(self.coda_ratio*sd) <= self.dim: 
-                        y1[i, spt:int(sst+(self.coda_ratio*sd)), 0] = 1        
+                    if sd and sst+int(0.4*sd) <= self.dim: 
+                        y1[i, spt:int(sst+(0.4*sd)), 0] = 1        
                     else:
                         y1[i, spt:self.dim, 0] = 1         
                     if spt: 
@@ -517,8 +513,8 @@ class DataGenerator(keras.utils.Sequence):
                         if add_spt and add_sst:
                             add_sd = add_sst - add_spt  
                             
-                        if add_sd and add_sst+int(self.coda_ratio*add_sd) <= self.dim: 
-                            y1[i, add_spt:int(add_sst+(self.coda_ratio*add_sd)), 0] = 1        
+                        if add_sd and add_sst+int(0.4*add_sd) <= self.dim: 
+                            y1[i, add_spt:int(add_sst+(0.4*add_sd)), 0] = 1        
                         else:
                             y1[i, add_spt:self.dim, 0] = 1                     
                         if add_spt:
@@ -576,9 +572,6 @@ class PreLoadGenerator(keras.utils.Sequence):
 
     add_gap_r: {float, None}, default=None
         Add an interval with zeros into the waveform representing filled gaps.
-
-    coda_ratio: {float, 0.4}, default=0.4
-        % of S-P time to extend event/coda envelope past S pick.
             
     shift_event_r: {float, None}, default=0.9
         Rate of augmentation for randomly shifting the event within a trace. 
@@ -615,7 +608,6 @@ class PreLoadGenerator(keras.utils.Sequence):
                  augmentation = False, 
                  add_event_r = None,
                  add_gap_r = None,
-                 coda_ratio = 0.4,
                  shift_event_r = None,
                  add_noise_r = None, 
                  drop_channe_r = None, 
@@ -636,8 +628,7 @@ class PreLoadGenerator(keras.utils.Sequence):
         self.label_type = label_type       
         self.augmentation = augmentation   
         self.add_event_r = add_event_r
-        self.add_gap_r = add_gap_r
-        self.coda_ratio = coda_ratio
+        self.add_gap_r = add_gap_r  
         self.shift_event_r = shift_event_r
         self.add_noise_r = add_noise_r
         self.drop_channe_r = drop_channe_r
@@ -908,8 +899,8 @@ class PreLoadGenerator(keras.utils.Sequence):
                         sd = sst - spt  
                                                             
                     if sd and sst:
-                        if sst+int(self.coda_ratio*sd) <= self.dim: 
-                            y1[i, spt:int(sst+(self.coda_ratio*sd)), 0] = 1        
+                        if sst+int(1.4*sd) <= self.dim: 
+                            y1[i, spt:int(sst+(1.4*sd)), 0] = 1        
                         else:
                             y1[i, spt:self.dim, 0] = 1                     
                                  
@@ -918,9 +909,9 @@ class PreLoadGenerator(keras.utils.Sequence):
                     elif spt and (spt-20 < self.dim):
                         y2[i, 0:spt+20, 0] = np.exp(-(np.arange(0,spt+20)-spt)**2/(2*(10)**2))[:self.dim-(spt-20)]
     
-                    if sst and (sst-20 >= 0) and (sst+20 < self.dim):
+                    if sst and (sst-20 >= 0) and (sst-20 < self.dim):
                         y3[i, sst-20:sst+20, 0] = np.exp(-(np.arange(sst-20,sst+20)-sst)**2/(2*(10)**2))[:self.dim-(sst-20)]
-                    elif sst and (sst+20 < self.dim):
+                    elif sst and (sst-20 < self.dim):
                         y3[i, 0:sst+20, 0] = np.exp(-(np.arange(0,sst+20)-sst)**2/(2*(10)**2))[:self.dim-(sst-20)]
 
                     if additions: 
@@ -931,8 +922,8 @@ class PreLoadGenerator(keras.utils.Sequence):
                         if add_spt and add_sst: 
                             add_sd = add_sst - add_spt  
                                     
-                        if add_sd and add_sst+int(self.coda_ratio*add_sd) <= self.dim: 
-                            y1[i, add_spt:int(add_sst+(self.coda_ratio*add_sd)), 0] = 1        
+                        if add_sd and add_sst+int(1.4*add_sd) <= self.dim: 
+                            y1[i, add_spt:int(add_sst+(1.4*add_sd)), 0] = 1        
                         else:
                             y1[i, add_spt:self.dim, 0] = 1
                             
@@ -952,8 +943,8 @@ class PreLoadGenerator(keras.utils.Sequence):
                         sd = sst - spt  
                                                             
                     if sd and sst:
-                        if sst+int(self.coda_ratio*sd) <= self.dim: 
-                            y1[i, spt:int(sst+(self.coda_ratio*sd)), 0] = 1        
+                        if sst+int(1.4*sd) <= self.dim: 
+                            y1[i, spt:int(sst+(1.4*sd)), 0] = 1        
                         else:
                             y1[i, spt:self.dim, 0] = 1                     
                         
@@ -981,8 +972,8 @@ class PreLoadGenerator(keras.utils.Sequence):
                         if add_spt and add_sst: 
                             add_sd = add_sst - add_spt                     
                         
-                        if add_sd and add_sst+int(self.coda_ratio*add_sd) <= self.dim: 
-                            y1[i, add_spt:int(add_sst+(self.coda_ratio*add_sd)), 0] = 1        
+                        if add_sd and add_sst+int(1.4*add_sd) <= self.dim: 
+                            y1[i, add_spt:int(add_sst+(1.4*add_sd)), 0] = 1        
                         else:
                             y1[i, add_spt:self.dim, 0] = 1                     
     
@@ -1007,8 +998,8 @@ class PreLoadGenerator(keras.utils.Sequence):
                     if sst and spt:
                         sd = sst - spt      
 
-                    if sd and sst+int(self.coda_ratio*sd) <= self.dim: 
-                        y1[i, spt:int(sst+(self.coda_ratio*sd)), 0] = 1        
+                    if sd and sst+int(1.4*sd) <= self.dim: 
+                        y1[i, spt:int(sst+(1.4*sd)), 0] = 1        
                     else:
                         y1[i, spt:self.dim, 0] = 1
                         
@@ -1024,8 +1015,8 @@ class PreLoadGenerator(keras.utils.Sequence):
                         if add_spt and add_sst:
                             add_sd = add_sst - add_spt  
                             
-                        if add_sd and add_sst+int(self.coda_ratio*add_sd) <= self.dim: 
-                            y1[i, add_spt:int(add_sst+(self.coda_ratio*add_sd)), 0] = 1        
+                        if add_sd and add_sst+int(1.4*add_sd) <= self.dim: 
+                            y1[i, add_spt:int(add_sst+(1.4*add_sd)), 0] = 1        
                         else:
                             y1[i, add_spt:self.dim, 0] = 1                     
                         if add_spt:
@@ -1044,8 +1035,7 @@ def data_reader( list_IDs,
                  norm_mode='max',
                  augmentation=False, 
                  add_event_r=None,
-                 add_gap_r=None,
-                 coda_ratio=0.4,
+                 add_gap_r=None, 
                  shift_event_r=None,                                  
                  add_noise_r=None, 
                  drop_channe_r=None, 
@@ -1078,12 +1068,6 @@ def data_reader( list_IDs,
             
     add_event_r: {float, None}, default=None
         Chance for randomly adding a second event into the waveform.
-
-    add_gap_r: {float, None}, default=None
-        Add an interval with zeros into the waveform representing filled gaps.
-
-    coda_ratio: {float, 0.4}, default=0.4
-        % of S-P time to extend event/coda envelope past S pick.
             
     shift_event_r: {float, None}, default=0.9
         Rate of augmentation for randomly shifting the event within a trace. 
@@ -1367,9 +1351,9 @@ def data_reader( list_IDs,
                     y3[len(list_IDs)+i, sst-sdif-1:dim, 0] = _label(a=sst-sdif, b=sst, c=2*sdif)    
                      
                 sd = sst - spt      
-                if sst+int(coda_ratio*sd) <= dim: 
-                    y1[i, spt:int(sst+(coda_ratio*sd)), 0] = 1  
-                    y1[len(list_IDs)+i, spt:int(sst+(coda_ratio*sd)), 0] = 1                              
+                if sst+int(0.4*sd) <= dim: 
+                    y1[i, spt:int(sst+(0.4*sd)), 0] = 1  
+                    y1[len(list_IDs)+i, spt:int(sst+(0.4*sd)), 0] = 1                              
                 else:
                     y1[i, spt:dim, 0] = 1
                     y1[len(list_IDs)+i, spt:dim, 0] = 1  
@@ -1396,8 +1380,8 @@ def data_reader( list_IDs,
                         sdif = dim - add_sst
                         y3[len(list_IDs)+i, add_sst-sdif-1:dim, 0] = _label(a=add_sst-sdif, b=add_sst, c=2*sdif) 
     
-                    if add_sst+int(coda_ratio*add_sd) <= dim: 
-                        y1[len(list_IDs)+i, add_spt:int(add_sst+(coda_ratio*add_sd)), 0] = 1        
+                    if add_sst+int(0.4*add_sd) <= dim: 
+                        y1[len(list_IDs)+i, add_spt:int(add_sst+(0.4*add_sd)), 0] = 1        
                     else:
                         y1[len(list_IDs)+i, add_spt:dim, 0] = 1
 
@@ -2394,7 +2378,7 @@ class SeqSelfAttention(keras.layers.Layer):
                  attention_regularizer_weight=0.0,
                  **kwargs):
 
-        super().__init__(**kwargs)
+        super(SeqSelfAttention, self).__init__(**kwargs)
         self.supports_masking = True
         self.units = units
         self.attention_width = attention_width
@@ -2539,8 +2523,7 @@ class SeqSelfAttention(keras.layers.Layer):
 
     def _call_additive_emission(self, inputs):
         input_shape = K.shape(inputs)
-        batch_size = input_shape[0]
-        input_len = inputs.get_shape().as_list()[1]
+        batch_size, input_len = input_shape[0], input_shape[1]
 
         # h_{t, t'} = \tanh(x_t^T W_t + x_{t'}^T W_x + b_h)
         q = K.expand_dims(K.dot(inputs, self.Wt), 2)
@@ -2736,6 +2719,12 @@ class cred2():
 
     bias_regularizer: str
         l1 norm regularizer.
+
+    multi_gpu: bool
+        If use multiple GPUs for the training. 
+
+    gpu_number: int
+        The number of GPUs for the muli-GPU training. 
            
     Returns
     ----------
@@ -2757,6 +2746,8 @@ class cred2():
                  loss_types=['binary_crossentropy', 'binary_crossentropy', 'binary_crossentropy'],                                 
                  kernel_regularizer=keras.regularizers.l1(1e-4),
                  bias_regularizer=keras.regularizers.l1(1e-4),
+                 multi_gpu=False, 
+                 gpu_number=4, 
                  ):
         
         self.kernel_size = kernel_size
@@ -2772,6 +2763,8 @@ class cred2():
         self.loss_types = loss_types       
         self.kernel_regularizer = kernel_regularizer     
         self.bias_regularizer = bias_regularizer 
+        self.multi_gpu = multi_gpu
+        self.gpu_number = gpu_number
 
         
     def __call__(self, inp):
@@ -2846,7 +2839,11 @@ class cred2():
         S = Conv1D(1, 11, padding = self.padding, activation='sigmoid', name='picker_S')(decoder_S)
         
 
-        model = Model(inputs=inp, outputs=[d, P, S])
+        if self.multi_gpu == True:
+            parallel_model = Model(inputs=inp, outputs=[d, P, S])
+            model = multi_gpu_model(parallel_model, gpus=self.gpu_number)
+        else:
+            model = Model(inputs=inp, outputs=[d, P, S])
 
         model.compile(loss=self.loss_types, loss_weights=self.loss_weights,    
             optimizer=Adam(lr=_lr_schedule(0)), metrics=[f1])

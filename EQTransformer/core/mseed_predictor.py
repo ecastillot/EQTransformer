@@ -5,17 +5,15 @@ Created on Sun Jun 21 21:55:54 2020
 
 @author: mostafamousavi
 
-last update: 05/27/2021
+last update: 06/28/2020
 
 """
 
 from __future__ import print_function
 from __future__ import division
-import os
-os.environ['KERAS_BACKEND']='tensorflow'
-from tensorflow.keras import backend as K
-from tensorflow.keras.models import load_model
-from tensorflow.keras.optimizers import Adam
+from keras import backend as K
+from keras.models import load_model
+from keras.optimizers import Adam
 import tensorflow as tf
 import matplotlib
 matplotlib.use('agg')
@@ -24,10 +22,10 @@ import numpy as np
 import pandas as pd
 import math
 import csv
-from tensorflow import keras
+import keras
 import time
-import h5py
 from os import listdir
+import os
 import platform
 import shutil
 from tqdm import tqdm
@@ -56,7 +54,7 @@ try:
         if li == 8:
             EQT_VERSION = l.split('"')[1]
 except Exception:
-    EQT_VERSION = "0.1.61"
+    EQT_VERSION = "0.1.58"
     
 
 def mseed_predictor(input_dir='downloads_mseeds',
@@ -75,8 +73,7 @@ def mseed_predictor(input_dir='downloads_mseeds',
               overlap = 0.3,
               gpuid=None,
               gpu_limit=None,
-              overwrite=False,
-              output_probabilities=False): 
+              overwrite=False): 
     
     """ 
     
@@ -132,14 +129,9 @@ def mseed_predictor(input_dir='downloads_mseeds',
     gpu_limit: int
        Set the maximum percentage of memory usage for the GPU. 
 
-    overwrite: Boolean, default=False
+    overwrite: Bolean, default=False
         Overwrite your results automatically.
-
-    output_probabilities: Boolean, default=False
-        Write probability in output_dir/prob.h5 for future plotting
-        Structure: prediction_probabilities.hdf5{begintime: {Earthquake: probability, P_arrival: probability, S_arrival: probability}}
-        Notice: It you turn this parameter on, it will generate larges file (A test shows ~150 Mb file generated for a three-components station for 3 months)
-
+           
     Returns
     --------        
     output_dir/STATION_OUTPUT/X_prediction_results.csv: A table containing all the detection, and picking results. Duplicated events are already removed.
@@ -171,8 +163,7 @@ def mseed_predictor(input_dir='downloads_mseeds',
     "overlap": overlap,
     "batch_size": batch_size,    
     "gpuid": gpuid,
-    "gpu_limit": gpu_limit,
-    "output_probabilities": output_probabilities
+    "gpu_limit": gpu_limit 
     }        
         
     if args['gpuid']:     
@@ -204,9 +195,13 @@ def mseed_predictor(input_dir='downloads_mseeds',
         yield
         sys.stdout = save_stdout
     
+ 
+    # print('============================================================================')
+    # print('Running EqTransformer ', str(EQT_VERSION))
     eqt_logger = logging.getLogger("EQTransformer")
     eqt_logger.info(f"Running EqTransformer  {EQT_VERSION}")
             
+    # print(' *** Loading the model ...', flush=True)     
     eqt_logger.info(f"*** Loading the model ...")
     model = load_model(args['input_model'], 
                        custom_objects={'SeqSelfAttention': SeqSelfAttention, 
@@ -218,14 +213,19 @@ def mseed_predictor(input_dir='downloads_mseeds',
                   loss_weights = args['loss_weights'],           
                   optimizer = Adam(lr = 0.001),
                   metrics = [f1])
+    # print('*** Loading is complete!', flush=True)  
     eqt_logger.info(f"*** Loading is complete!")
+
 
     out_dir = os.path.join(os.getcwd(), str(args['output_dir']))
     if os.path.isdir(out_dir):
+        # print('============================================================================')        
+        # print(f' *** {out_dir} already exists!')
         eqt_logger.info(f"*** {out_dir} already exists!")
         if overwrite == True:
             inp = "y"
             eqt_logger.info(f"Overwriting your previous results")
+            # print("Overwriting your previous results")
         else:
             inp = input(" --> Type (Yes or y) to create a new empty directory! This will erase your previous results so make a copy if you want them.")
         if inp.lower() == "yes" or inp.lower() == "y":
@@ -234,35 +234,29 @@ def mseed_predictor(input_dir='downloads_mseeds',
         else:
             print("Okay.")
             return
-    
+     
     if platform.system() == 'Windows':
         station_list = [ev.split(".")[0] for ev in listdir(args['input_dir']) if ev.split("\\")[-1] != ".DS_Store"];
     else:     
         station_list = [ev.split(".")[0] for ev in listdir(args['input_dir']) if ev.split("/")[-1] != ".DS_Store"];
+        
 
     station_list = sorted(set(station_list))
     
     data_track = dict()
 
+    # print(f"######### There are files for {len(station_list)} stations in {args['input_dir']} directory. #########", flush=True)
     eqt_logger.info(f"There are files for {len(station_list)} stations in {args['input_dir']} directory.")
     for ct, st in enumerate(station_list):
     
         save_dir = os.path.join(out_dir, str(st)+'_outputs')
-        out_probs = os.path.join(save_dir, 'prediction_probabilities.hdf5')
         save_figs = os.path.join(save_dir, 'figures') 
         if os.path.isdir(save_dir):
             shutil.rmtree(save_dir)  
         os.makedirs(save_dir) 
-        try:
-            os.remove(out_probs)
-        except Exception:
-            pass 
         if args['number_of_plots']:
             os.makedirs(save_figs)
-
-        if args['output_probabilities']:           
-            HDF_PROB = h5py.File(out_probs, 'a')
-
+            
         plt_n = 0            
         csvPr_gen = open(os.path.join(save_dir,'X_prediction_results.csv'), 'w')          
         predict_writer = csv.writer(csvPr_gen, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -287,7 +281,9 @@ def mseed_predictor(input_dir='downloads_mseeds',
                                  's_snr'
                                      ])  
         csvPr_gen.flush()
-        eqt_logger.info(f"Started working on {st}, {ct+1} out of {len(station_list)} ...")       
+        # print(f'========= Started working on {st}, {ct+1} out of {len(station_list)} ...', flush=True)
+        eqt_logger.info(f"Started working on {st}, {ct+1} out of {len(station_list)} ...")
+        
 
         start_Predicting = time.time()       
         if platform.system() == 'Windows':
@@ -301,6 +297,7 @@ def mseed_predictor(input_dir='downloads_mseeds',
           
         time_slots, comp_types = [], []
         
+        # print('============ Station {} has {} chunks of data.'.format(st, len(uni_list)), flush=True)      
         for _, month in enumerate(uni_list):
             eqt_logger.info(f"{month}")
             matching = [s for s in file_list if month in s]
@@ -321,13 +318,6 @@ def mseed_predictor(input_dir='downloads_mseeds',
                     pre_write = len(detection_memory)
                     detection_memory=_output_writter_prediction(meta, predict_writer, csvPr_gen, matches, snr, detection_memory, ix)
                     post_write = len(detection_memory)
-
-                    if args['output_probabilities']:
-                        HDF_PROB.create_dataset(f'{meta["trace_start_time"][ix]}/Earthquake', data=predD[ix][:, 0], dtype= np.float32) 
-                        HDF_PROB.create_dataset(f'{meta["trace_start_time"][ix]}/P_arrival', data=predP[ix][:, 0], dtype= np.float32) 
-                        HDF_PROB.create_dataset(f'{meta["trace_start_time"][ix]}/S_arrival', data=predS[ix][:, 0], dtype= np.float32) 
-                        HDF_PROB.flush()
-                    
                     if plt_n < args['number_of_plots'] and post_write > pre_write:
                         _plotter_prediction(data_set[meta["trace_start_time"][ix]], args, save_figs, predD[ix][:, 0], predP[ix][:, 0], predS[ix][:, 0], meta["trace_start_time"][ix], matches)
                         plt_n += 1            
@@ -339,10 +329,7 @@ def mseed_predictor(input_dir='downloads_mseeds',
         delta -= hour * 3600
         minute = int(delta / 60)
         delta -= minute * 60
-        seconds = delta
-
-        if args['output_probabilities']:
-            HDF_PROB.close()
+        seconds = delta     
                         
         dd = pd.read_csv(os.path.join(save_dir,'X_prediction_results.csv'))
         print(f'\n', flush=True)
@@ -1242,9 +1229,9 @@ def _plotter_prediction(data, args, save_figs, yh1, yh2, yh3, evi, matches):
         axes.yaxis.grid(color='lightgray')        
     
         ax = fig.add_subplot(spec5[6, 1])  
-        custom_lines = [Line2D([0], [0], linestyle='--', color='g', lw=2),
-                        Line2D([0], [0], linestyle='--', color='b', lw=2),
-                        Line2D([0], [0], linestyle='--', color='r', lw=2)]
+        custom_lines = [Line2D([0], [0], linestyle='--', color='mediumblue', lw=2),
+                        Line2D([0], [0], linestyle='--', color='c', lw=2),
+                        Line2D([0], [0], linestyle='--', color='m', lw=2)]
         plt.legend(custom_lines, ['Earthquake', 'P_arrival', 'S_arrival'], fancybox=True, shadow=True)
         plt.axis('off')
             
@@ -1262,7 +1249,7 @@ def _plotter_prediction(data, args, save_figs, yh1, yh2, yh3, evi, matches):
             
         plt.xlim(0, 6000)
         fig.tight_layout()
-        fig.savefig(os.path.join(save_figs, str(evi).replace(':', '-')+'.png')) 
+        fig.savefig(os.path.join(save_figs, str(evi)+'.png')) 
         plt.close(fig)
         plt.clf()
     
@@ -1410,7 +1397,7 @@ def _plotter_prediction(data, args, save_figs, yh1, yh2, yh3, evi, matches):
             plt.text(7000, 0.1, str(EQT_VERSION), fontdict=font)
             
         fig.tight_layout()
-        fig.savefig(os.path.join(save_figs, str(evi).replace(':', '-')+'.png')) 
+        fig.savefig(os.path.join(save_figs, str(evi)+'.png')) 
         plt.close(fig)
         plt.clf()
         
